@@ -823,7 +823,8 @@ Optional ARGS are passed to `elpaca--signal', which see."
     (setf recipe (elpaca-merge-plists recipe '(:remotes nil)))
     (cl-loop for remote in remotes
              for opts = (elpaca-merge-plists recipe (cdr-safe remote))
-             for command = `("git" "fetch" ,@(when-let ((depth (plist-get opts :depth)))
+             for command = `("git" "fetch" ,@(when-let ((depth (plist-get opts :depth))
+                                                        ((integerp depth)))
                                                (list "--depth" (format "%s" depth)))
                              ,(or (car-safe remote) remote))
              for fn = (apply-partially (lambda (command e) (apply #'elpaca--fetch e command))
@@ -1425,11 +1426,13 @@ This is the branch that would be checked out upon cloning."
          (command
           `("git" "clone"
             ;;@TODO: Some refs will need a full clone or specific branch.
-            ,@(when-let ((depth (plist-get recipe :depth))
-                         ((numberp depth)))
-                (if (plist-get recipe :ref)
-                    (elpaca--signal e "Ignoring :depth in favor of :ref")
-                  `("--depth" ,(number-to-string depth))))
+            ,@(when-let ((depth (plist-get recipe :depth)))
+                (cond ((numberp depth)
+                       (if (plist-get recipe :ref)
+                           (elpaca--signal e "Ignoring :depth in favor of :ref")
+                         `("--depth" ,(number-to-string depth))))
+                      ((eq depth 'treeless) '("--filter=tree:0"))
+                      (t (error "Invalid :depth arg %S" depth))))
             ;;@FIX: allow override
             ,@(when-let ((ref (or (plist-get recipe :branch) (plist-get recipe :tag))))
                 `("--single-branch" "--branch" ,ref))
