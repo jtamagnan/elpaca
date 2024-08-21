@@ -111,6 +111,8 @@ If INSTALLERP is non-nil, stop after Elpaca installer."
 
 (defun elpaca-test--upstream-init (&optional ref)
   "Return upstream init.el file for REF."
+  ;; TODO(jat): If there is a local version of the repository use the
+  ;; ref from there instead of the "real" upstream
   (let ((url (format elpaca-test--upstream-format (or ref "master"))))
     (with-current-buffer (url-retrieve-synchronously url 'silent 'inhibit-cookies)
       (unless (equal url-http-response-status 200)
